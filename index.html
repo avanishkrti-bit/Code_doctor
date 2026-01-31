@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Doctor 🩺</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for syntax highlighting -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            /* Darker glass for code theme */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-900 min-h-screen text-gray-100 selection:bg-teal-500 selection:text-white">
+
+    <!-- Navbar -->
+    <nav class="p-6 border-b border-slate-700 bg-slate-800/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-blue-500">
+                <i class="fa-solid fa-user-doctor text-teal-400 mr-2"></i>Code Doctor
+            </h1>
+            <button onclick="toggleSettings()" class="text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-gear text-xl"></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-80px)]">
+
+        <!-- Left Column: Input -->
+        <div class="flex flex-col gap-4">
+            <div class="glass rounded-xl p-4 flex gap-4 items-center">
+                <select id="langSelect"
+                    class="bg-slate-800 text-white p-2 rounded-lg border border-slate-600 focus:outline-none focus:border-teal-500">
+                    <option value="Python">Python</option>
+                    <option value="JavaScript">JavaScript</option>
+                    <option value="Java">Java</option>
+                    <option value="C++">C++</option>
+                    <option value="SQL">SQL</option>
+                    <option value="HTML/CSS">HTML/CSS</option>
+                </select>
+                <span class="text-slate-400 text-sm">Paste your broken code below</span>
+            </div>
+
+            <textarea id="codeInput"
+                class="flex-1 w-full bg-slate-800 text-gray-300 p-4 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 code-font resize-none text-sm leading-relaxed"
+                placeholder="// Paste code here..." spellcheck="false"></textarea>
+
+            <button id="fixBtn" onclick="fixCode()"
+                class="w-full bg-gradient-to-r from-teal-500 to-blue-600 hover:from-teal-400 hover:to-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all transform hover:scale-[1.01] flex justify-center items-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Debug & Fix
+            </button>
+        </div>
+
+        <!-- Right Column: Output -->
+        <div class="flex flex-col gap-4 relative">
+            <!-- Loader Overlay -->
+            <div id="loader"
+                class="absolute inset-0 z-10 bg-slate-900/80 backdrop-blur-sm hidden flex flex-col items-center justify-center rounded-xl">
+                <div class="animate-spin text-teal-400 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
+                <p class="text-teal-300 font-mono animate-pulse">Analyzing logic...</p>
+            </div>
+
+            <!-- Fixed Code -->
+            <div class="flex-1 glass rounded-xl overflow-hidden flex flex-col relative group">
+                <div class="bg-slate-800/80 p-3 flex justify-between items-center border-b border-slate-700">
+                    <span class="text-xs font-bold text-teal-400 uppercase tracking-wider">Fixed Code</span>
+                    <button onclick="copyCode()"
+                        class="text-slate-400 hover:text-white text-xs opacity-0 group-hover:opacity-100 transition">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="flex-1 overflow-auto relative">
+                    <pre><code id="fixedCodeDisplay" class="h-full block p-4 language-plaintext">Waiting for input...</code></pre>
+                </div>
+            </div>
+
+            <!-- Explanation -->
+            <div class="h-1/3 glass rounded-xl overflow-hidden flex flex-col">
+                <div class="bg-slate-800/80 p-3 border-b border-slate-700">
+                    <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Doctor's Note</span>
+                </div>
+                <div id="explanationDisplay"
+                    class="p-4 overflow-auto text-sm text-slate-300 prose prose-invert max-w-none">
+                    <p class="italic text-slate-500">Explanation will appear here...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-[100]">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl p-8 max-w-md w-full m-4 shadow-2xl">
+            <h2 class="text-2xl font-bold mb-4 text-white">⚙️ API Setup</h2>
+            <input type="password" id="apiKeyInput" placeholder="Paste Gemini API Key..."
+                class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500 text-white">
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleSettings()" class="px-4 py-2 text-slate-400 hover:text-white">Cancel</button>
+                <button onclick="saveApiKey()"
+                    class="px-6 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-500">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=";
+
+        // Init
+        window.addEventListener('DOMContentLoaded', () => {
+            const key = localStorage.getItem('gemini_api_key');
+            if (!key) document.getElementById('settingsModal').classList.remove('hidden');
+            else document.getElementById('apiKeyInput').value = key;
+        });
+
+        function toggleSettings() {
+            document.getElementById('settingsModal').classList.toggle('hidden');
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                toggleSettings();
+            }
+        }
+
+        async function fixCode() {
+            const apiKey = localStorage.getItem('gemini_api_key');
+            if (!apiKey) return toggleSettings();
+
+            const code = document.getElementById('codeInput').value;
+            const lang = document.getElementById('langSelect').value;
+            if (!code.trim()) return alert("Please paste code first!");
+
+            const loader = document.getElementById('loader');
+            const display = document.getElementById('fixedCodeDisplay');
+            const explanation = document.getElementById('explanationDisplay');
+
+            loader.classList.remove('hidden');
+
+            try {
+                const prompt = `Act as an expert software engineer. Analyze the following ${lang} code for bugs, logic errors, or bad practices.
+                Code:
+                ${code}
+                
+                Return a strictly valid JSON object with keys:
+                - "fixed_code": String (The full corrected code)
+                - "explanation": String (Markdown formatted explanation of what was wrong and how you fixed it).
+                
+                If the code is already correct, say so in explanation and return the same code.`;
+
+                const response = await fetch(`${API_URL}${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+
+                let text = data.candidates[0].content.parts[0].text;
+                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    const match = text.match(/\{.*\}/s);
+                    if (match) result = JSON.parse(match[0]);
+                    else throw new Error("AI response format error");
+                }
+
+                // Render
+                display.textContent = result.fixed_code;
+                display.className = `language-${lang.toLowerCase()}`;
+                delete display.dataset.highlighted;
+                hljs.highlightElement(display);
+
+                explanation.innerHTML = marked.parse(result.explanation);
+
+            } catch (e) {
+                console.error(e);
+                alert("Error: " + e.message);
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function copyCode() {
+            const code = document.getElementById('fixedCodeDisplay').textContent;
+            navigator.clipboard.writeText(code).then(() => alert("Copied!"));
+        }
+    </script>
+</body>
+
+</html>
